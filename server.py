@@ -93,4 +93,4 @@ def zone_page(zone_name):
     )
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
