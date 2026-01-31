@@ -56,10 +56,10 @@ def homepage():
             data_store[key] = []
         data_store[key].append((time_, value))
 
-    return render_template("dashboard.html", data_store=data_store)
+    return render_template("dash.html", data_store=data_store)
 
 # ------------------------------
 # Run server
 # ------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
