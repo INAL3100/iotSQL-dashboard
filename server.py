@@ -5,7 +5,16 @@ import sqlite3
 app = Flask(__name__)
 
 # ------------------------------
-# Database setup
+# ZONE → SENSOR MAPPING
+# ------------------------------
+ZONES = {
+    "Zone 1": ["SENSOR_1"],
+    "Zone 2": ["SENSOR_2"],
+    "Zone 3": ["SENSOR_3"]
+}
+
+# ------------------------------
+# DATABASE SETUP
 # ------------------------------
 conn = sqlite3.connect("sensors.db", check_same_thread=False)
 cursor = conn.cursor()
@@ -22,15 +31,12 @@ CREATE TABLE IF NOT EXISTS readings (
 conn.commit()
 
 # ------------------------------
-# Receive data from sensors
+# RECEIVE SENSOR DATA
 # ------------------------------
 @app.route("/data", methods=["POST"])
 def receive_data():
-    try:
-        sensor_id = request.form.get("sensor_id")
-        value = float(request.form.get("value"))
-    except Exception:
-        return "Invalid data", 400
+    sensor_id = request.form.get("sensor_id")
+    value = float(request.form.get("value"))
 
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
@@ -45,24 +51,44 @@ def receive_data():
     return "OK", 200
 
 # ------------------------------
-# Dashboard
+# DASHBOARD
 # ------------------------------
 @app.route("/")
 def homepage():
-    cursor.execute("SELECT sensor_id, date, time, value FROM readings ORDER BY sensor_id, date, time")
+    selected_sensor = request.args.get("sensor")
+    selected_date = request.args.get("date")
+
+    query = "SELECT sensor_id, date, time, value FROM readings WHERE 1=1"
+    params = []
+
+    if selected_sensor:
+        query += " AND sensor_id = ?"
+        params.append(selected_sensor)
+
+    if selected_date:
+        query += " AND date = ?"
+        params.append(selected_date)
+
+    query += " ORDER BY sensor_id, date, time"
+
+    cursor.execute(query, params)
     rows = cursor.fetchall()
 
     data_store = {}
     for sensor_id, date, time_, value in rows:
         key = (sensor_id, date)
-        if key not in data_store:
-            data_store[key] = []
-        data_store[key].append((time_, value))
+        data_store.setdefault(key, []).append((time_, value))
 
-    return render_template("dashboard.html", data_store=data_store)
+    return render_template(
+        "dashboard.html",
+        data_store=data_store,
+        zones=ZONES,
+        selected_sensor=selected_sensor,
+        selected_date=selected_date
+    )
 
 # ------------------------------
-# Run server
+# RUN SERVER
 # ------------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

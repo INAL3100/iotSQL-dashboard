@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sensors Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dash.css') }}">
+</head>
+<body>
+
+<h1>Sensors Dashboard</h1>
+
+<!-- FILTERS -->
+<form method="get" class="filters">
+    <label>Sensor:</label>
+    <select name="sensor">
+        <option value="">All</option>
+        {% for zone, sensors in zones.items() %}
+            {% for sensor in sensors %}
+                <option value="{{ sensor }}" {% if sensor == selected_sensor %}selected{% endif %}>
+                    {{ zone }} - {{ sensor }}
+                </option>
+            {% endfor %}
+        {% endfor %}
+    </select>
+
+    <label>Date:</label>
+    <input type="date" name="date" value="{{ selected_date }}">
+
+    <button type="submit">Apply</button>
+</form>
+
+<table>
+    <tr>
+        <th>Zone</th>
+        <th>Sensor ID</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Reading</th>
+        <th>Average</th>
+    </tr>
+
+    {% for (sensor, date), readings in data_store.items() %}
+        {% set avg = (readings | map(attribute=1) | sum) / (readings | length) %}
+        {% set rows = readings | length %}
+
+        {% for zone, sensors in zones.items() %}
+            {% if sensor in sensors %}
+                {% set zone_name = zone %}
+            {% endif %}
+        {% endfor %}
+
+        <tr>
+            <td rowspan="{{ rows }}">{{ zone_name }}</td>
+            <td rowspan="{{ rows }}">{{ sensor }}</td>
+            <td rowspan="{{ rows }}">{{ date }}</td>
+            <td>{{ readings[0][0] }}</td>
+            <td>{{ readings[0][1] }}</td>
+            <td rowspan="{{ rows }}">{{ "%.2f"|format(avg) }}</td>
+        </tr>
+
+        {% for time_, value in readings[1:] %}
+        <tr>
+            <td>{{ time_ }}</td>
+            <td>{{ value }}</td>
+        </tr>
+        {% endfor %}
+    {% endfor %}
+</table>
+
+</body>
+</html>

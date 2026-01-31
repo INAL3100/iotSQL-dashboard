@@ -2,7 +2,7 @@ import requests
 import random
 import time
 
-URL = "http://127.0.0.1:5000/data"  # or your deployed URL
+URL = "http://127.0.0.1:5000/data"
 
 sensors = ["SENSOR_1", "SENSOR_2", "SENSOR_3"]
 
@@ -17,6 +17,6 @@ while True:
             })
             print(sensor, "sent:", value)
         except Exception as e:
-            print("Error sending data:", e)
+            print("Error:", e)
 
-    time.sleep(10)  # 10 sec for testing, change to 1800 for 30 min
+    time.sleep(10)
