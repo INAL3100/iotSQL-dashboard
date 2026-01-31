@@ -26,8 +26,11 @@ conn.commit()
 # ------------------------------
 @app.route("/data", methods=["POST"])
 def receive_data():
-    sensor_id = request.form.get("sensor_id")
-    value = float(request.form.get("value"))
+    try:
+        sensor_id = request.form.get("sensor_id")
+        value = float(request.form.get("value"))
+    except Exception:
+        return "Invalid data", 400
 
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
@@ -56,7 +59,7 @@ def homepage():
             data_store[key] = []
         data_store[key].append((time_, value))
 
-    return render_template("dash.html", data_store=data_store)
+    return render_template("dashboard.html", data_store=data_store)
 
 # ------------------------------
 # Run server
