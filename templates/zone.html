@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ zone }} - TOSYALI ALGERIA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<h1 class="title">TOSYALI ALGERIA</h1>
+<h2 class="subtitle">{{ zone }}</h2>
+
+<form method="get" class="date-form">
+    <label>Select Date:</label>
+    <input type="date" name="date" value="{{ selected_date }}">
+    <button type="submit">Apply</button>
+</form>
+
+<table>
+    <tr>
+        <th>Sensor ID</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Value</th>
+        <th>Daily Avg</th>
+    </tr>
+
+    {% for sensor, readings in data.items() %}
+        {% set avg = (readings | map(attribute=2) | sum) / (readings | length) %}
+        {% for date, time_, value in readings %}
+            <tr>
+                <td>{{ sensor }}</td>
+                <td>{{ date }}</td>
+                <td>{{ time_ }}</td>
+
+                {% if value > 30 %}
+                    <td class="value high">{{ value }}</td>
+                {% elif value >= 25 %}
+                    <td class="value medium">{{ value }}</td>
+                {% else %}
+                    <td class="value low">{{ value }}</td>
+                {% endif %}
+
+                <td>{{ "%.2f"|format(avg) }}</td>
+            </tr>
+        {% endfor %}
+    {% endfor %}
+</table>
+
+</body>
+</html>

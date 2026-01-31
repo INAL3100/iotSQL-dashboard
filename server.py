@@ -4,24 +4,27 @@ import sqlite3
 
 app = Flask(__name__)
 
-# ------------------------------
-# ZONE → SENSOR MAPPING
-# ------------------------------
-ZONES = {
-    "Zone 1": ["SENSOR_1"],
-    "Zone 2": ["SENSOR_2"],
-    "Zone 3": ["SENSOR_3"]
+# -----------------------------
+# SENSOR → ZONE
+# -----------------------------
+SENSOR_ZONES = {
+    "SENSOR_1": "Zone 1",
+    "SENSOR_2": "Zone 2",
+    "SENSOR_3": "Zone 3",
 }
 
-# ------------------------------
-# DATABASE SETUP
-# ------------------------------
+ZONES = ["Zone 1", "Zone 2", "Zone 3"]
+
+# -----------------------------
+# DATABASE
+# -----------------------------
 conn = sqlite3.connect("sensors.db", check_same_thread=False)
 cursor = conn.cursor()
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS readings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    zone TEXT,
     sensor_id TEXT,
     date TEXT,
     time TEXT,
@@ -30,65 +33,64 @@ CREATE TABLE IF NOT EXISTS readings (
 """)
 conn.commit()
 
-# ------------------------------
+# -----------------------------
 # RECEIVE SENSOR DATA
-# ------------------------------
+# -----------------------------
 @app.route("/data", methods=["POST"])
 def receive_data():
     sensor_id = request.form.get("sensor_id")
     value = float(request.form.get("value"))
+
+    zone = SENSOR_ZONES.get(sensor_id)
 
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
     time_ = now.strftime("%H:%M:%S")
 
     cursor.execute(
-        "INSERT INTO readings (sensor_id, date, time, value) VALUES (?, ?, ?, ?)",
-        (sensor_id, date, time_, value)
+        "INSERT INTO readings (zone, sensor_id, date, time, value) VALUES (?, ?, ?, ?, ?)",
+        (zone, sensor_id, date, time_, value)
     )
     conn.commit()
 
     return "OK", 200
 
-# ------------------------------
-# DASHBOARD
-# ------------------------------
+# -----------------------------
+# HOME PAGE
+# -----------------------------
 @app.route("/")
-def homepage():
-    selected_sensor = request.args.get("sensor")
+def index():
+    return render_template("index.html", zones=ZONES)
+
+# -----------------------------
+# ZONE PAGE
+# -----------------------------
+@app.route("/zone/<zone_name>")
+def zone_page(zone_name):
     selected_date = request.args.get("date")
 
-    query = "SELECT sensor_id, date, time, value FROM readings WHERE 1=1"
-    params = []
+    if not selected_date:
+        selected_date = datetime.now().strftime("%Y-%m-%d")
 
-    if selected_sensor:
-        query += " AND sensor_id = ?"
-        params.append(selected_sensor)
+    cursor.execute("""
+        SELECT sensor_id, date, time, value
+        FROM readings
+        WHERE zone = ? AND date = ?
+        ORDER BY sensor_id, time
+    """, (zone_name, selected_date))
 
-    if selected_date:
-        query += " AND date = ?"
-        params.append(selected_date)
-
-    query += " ORDER BY sensor_id, date, time"
-
-    cursor.execute(query, params)
     rows = cursor.fetchall()
 
-    data_store = {}
-    for sensor_id, date, time_, value in rows:
-        key = (sensor_id, date)
-        data_store.setdefault(key, []).append((time_, value))
+    data = {}
+    for sensor, date, time_, value in rows:
+        data.setdefault(sensor, []).append((date, time_, value))
 
     return render_template(
-        "dashboard.html",
-        data_store=data_store,
-        zones=ZONES,
-        selected_sensor=selected_sensor,
+        "zone.html",
+        zone=zone_name,
+        data=data,
         selected_date=selected_date
     )
 
-# ------------------------------
-# RUN SERVER
-# ------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(debug=True)
