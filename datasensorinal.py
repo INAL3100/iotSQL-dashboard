@@ -2,7 +2,7 @@ import requests
 import random
 import time
 
-URL = "http://127.0.0.1:5000/data"
+URL = "https://iotsql-dashboard.onrender.com"
 sensors = ["SENSOR_1", "SENSOR_2", "SENSOR_3"]
 
 while True:
